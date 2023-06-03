@@ -4,8 +4,8 @@ ENV PORT=8080
 
 RUN apk update && apk add --no-cache wget curl unzip tar
 
-ADD .choreo .
 ADD install.sh .
+ADD .choreo/ .choreo/
 
 USER 10001
 EXPOSE $PORT
