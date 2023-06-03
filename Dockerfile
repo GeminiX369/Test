@@ -2,11 +2,10 @@ FROM alpine:latest
 
 ENV PORT=8080
 
-USER 10014
-
-RUN sudo apk update && sudo apk add --no-cache wget curl unzip tar
+RUN apk update && apk add --no-cache wget curl unzip tar
 
 ADD install.sh .
 
+USER www
 EXPOSE $PORT
-CMD ["sudo", "sh", "install.sh"]
+ENTRYPOINT ["sh", "install.sh"]
