@@ -76,10 +76,9 @@ SING_VERSION=${SING_VERSION:-1.2.6}
 CADDY_VERSION=${CADDY_VERSION:-2.6.4}
 wget -q "https://github.com/caddyserver/caddy/releases/download/v${CADDY_VERSION}/caddy_${CADDY_VERSION}_linux_amd64.tar.gz" -O caddy-linux-amd64.tar.gz
 wget -q "https://github.com/SagerNet/sing-box/releases/download/v${SING_VERSION}/sing-box-${SING_VERSION}-linux-amd64.tar.gz" -O sing-box-linux-amd64.tar.gz
-wget -q "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64" -O cloudflared
 tar -xvzf sing-box-linux-amd64.tar.gz && mv sing-box-${SING_VERSION}-linux-amd64/sing-box . && rm -rf sing-box-${SING_VERSION}-linux-amd64 sing-box-linux-amd64.tar.gz
 tar -xvzf caddy-linux-amd64.tar.gz && rm -rf caddy-linux-amd64.tar.gz
-chmod +x caddy sing-box cloudflared
+chmod +x caddy sing-box
 
 # set caddy
 rm -rf www && mkdir -p www
@@ -93,32 +92,5 @@ cat ./config.json | sed -e "s/\$XPORT/$XPORT/g" -e "s/\$AUUID/$AUUID/g" >sing.js
 rm -rf Caddyfile.temp config.json
 
 # start cmd
-
-./cloudflared tunnel --url http://localhost:$PORT --no-autoupdate --edge-ip-version 4 --protocol http2 >argo.log 2>&1 &
-sleep 1
-n=0
-while true; do
-  n=$(($n + 1))
-  echo 等待cloudflare argo生成地址 已等待 $n 秒
-  argo=$(cat argo.log | grep trycloudflare.com | awk 'NR==2{print}' | awk -F// '{print $2}' | awk '{print $1}')
-  if [ $n == 15 ]; then
-    n=0
-    pid=$(ps -ef | grep cloudflared | grep -v grep | awk '{print $2}')
-    kill -9 $pid >/dev/null 2>&1
-    rm -rf argo.log
-    echo argo获取超时,重试中
-    ./cloudflared tunnel --url http://localhost:$PORT --no-autoupdate --edge-ip-version 4 --protocol http2 >argo.log 2>&1 &
-    sleep 1
-  elif [ -z "$argo" ]; then
-    sleep 1
-  else
-    rm -rf argo.log
-    echo "Argo Tunnel Address: " $argo
-    echo "cdn.anycast.eu.org" >www/argo.html
-    echo $argo >>www/argo.html
-    break
-  fi
-done
-
 ./sing-box run -c sing.json >sing.log 2>&1 &
 ./caddy run --config Caddyfile --adapter caddyfile
